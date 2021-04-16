@@ -438,6 +438,21 @@ func TestSimpleMitm(t *testing.T) {
 	}
 }
 
+func TestMitmHeadReqHasContentLength(t *testing.T) {
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.OnRequest(goproxy.ReqHostIs(https.Listener.Addr().String())).HandleConnect(goproxy.AlwaysMitm)
+	proxy.OnRequest(goproxy.ReqHostIs("no such host exists")).HandleConnect(goproxy.AlwaysMitm)
+
+	client, l := oneShotProxy(proxy, t)
+	defer l.Close()
+
+	resp, err := client.Head(localTls("/test_data/panda.png"))
+	panicOnErr(err, "resp to HEAD")
+	if resp.Header.Get("Content-Length") == "" {
+		t.Error("Content-Length should exist on HEAD requests")
+	}
+}
+
 func TestConnectHandler(t *testing.T) {
 	proxy := goproxy.NewProxyHttpServer()
 	althttps := httptest.NewTLSServer(ConstantHanlder("althttps"))
